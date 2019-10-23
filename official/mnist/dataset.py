@@ -105,14 +105,14 @@ def dataset(directory, images_file, labels_file):
       labels_file, 1, header_bytes=8).map(decode_label)
   '''
   images = np.load(directory+images_file)
-  images = images[:,:28,:28].astype('float32')
+  images = images[:,150:178,:].astype('float32')
   images = images.reshape((images.shape[0],images.shape[1]*images.shape[2]))
   labels = np.load(directory+labels_file)
-  bin_is = np.where(labels[:,1]==2)[0]
-  ter_is = np.where(labels[:,1]==3)[0]
+  C1_is = np.where((labels[:,0]%10)==1)[0]
+  C2_is = np.where((labels[:,0]%10)==2)[0]
   labels = np.zeros((labels.shape[0],1),dtype=np.int32)
-  labels[bin_is] = 0
-  labels[ter_is] = 1
+  labels[C1_is] = 0
+  labels[C2_is] = 1
 
   return tf.data.Dataset.from_tensor_slices((images, labels))
 

@@ -52,10 +52,10 @@ def create_model(data_format):
     A tf.keras.Model.
   """
   if data_format == 'channels_first':
-    input_shape = [1, 28, 28]
+    input_shape = [1, 28, 70]
   else:
     assert data_format == 'channels_last'
-    input_shape = [28, 28, 1]
+    input_shape = [28, 70, 1]
 
   l = tf.keras.layers
   max_pool = l.MaxPooling2D(
@@ -66,7 +66,7 @@ def create_model(data_format):
       [
           l.Reshape(
               target_shape=input_shape,
-              input_shape=(28 * 28,)),
+              input_shape=(28 * 70,)),
           l.Conv2D(
               32,
               5,
@@ -84,7 +84,7 @@ def create_model(data_format):
           l.Flatten(),
           l.Dense(1024, activation=tf.nn.relu),
           l.Dropout(0.4),
-          l.Dense(10)
+          l.Dense(2)
       ])
 
 
@@ -227,7 +227,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 28, 28])
+    image = tf.placeholder(tf.float32, [None, 70, 28])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })
