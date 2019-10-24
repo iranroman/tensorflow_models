@@ -105,12 +105,13 @@ def dataset(directory, images_file, labels_file):
       labels_file, 1, header_bytes=8).map(decode_label)
   '''
   images = np.load(directory+images_file)
-  images = images[:,150:178,:].astype('float32')
+  images = images[:20,150:178,:28].astype('float32')
   images = images.reshape((images.shape[0],images.shape[1]*images.shape[2]))
+  images = images/np.mean(images)
   labels = np.load(directory+labels_file)
-  C1_is = np.where((labels[:,0]%10)==1)[0]
-  C2_is = np.where((labels[:,0]%10)==2)[0]
-  labels = np.zeros((labels.shape[0],1),dtype=np.int32)
+  C1_is = np.where((labels[:20,0]%10)==1)[0]
+  C2_is = np.where((labels[:20,0]%10)==2)[0]
+  labels = np.zeros((20,1),dtype=np.int32)
   labels[C1_is] = 0
   labels[C2_is] = 1
 

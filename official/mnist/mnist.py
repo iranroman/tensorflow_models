@@ -29,7 +29,7 @@ from official.utils.misc import distribution_utils
 from official.utils.misc import model_helpers
 
 
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-3
 
 
 def create_model(data_format):
@@ -52,10 +52,10 @@ def create_model(data_format):
     A tf.keras.Model.
   """
   if data_format == 'channels_first':
-    input_shape = [1, 28, 70]
+    input_shape = [1, 28, 28]
   else:
     assert data_format == 'channels_last'
-    input_shape = [28, 70, 1]
+    input_shape = [28, 28, 1]
 
   l = tf.keras.layers
   max_pool = l.MaxPooling2D(
@@ -66,7 +66,7 @@ def create_model(data_format):
       [
           l.Reshape(
               target_shape=input_shape,
-              input_shape=(28 * 70,)),
+              input_shape=(28 * 28,)),
           l.Conv2D(
               32,
               5,
@@ -218,6 +218,8 @@ def run_mnist(flags_obj):
   # Train and evaluate model.
   for _ in range(flags_obj.train_epochs // flags_obj.epochs_between_evals):
     mnist_classifier.train(input_fn=train_input_fn, hooks=train_hooks)
+    train_results = mnist_classifier.evaluate(input_fn=train_input_fn)
+    print('\nTrain results:\n\t%s\n' % train_results)
     eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
     print('\nEvaluation results:\n\t%s\n' % eval_results)
 
@@ -227,7 +229,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 70, 28])
+    image = tf.placeholder(tf.float32, [None, 28, 28])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })
