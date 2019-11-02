@@ -43,7 +43,7 @@ def check_image_file_header(filename):
     if magic != 2051:
       raise ValueError('Invalid magic number %d in MNIST file %s' % (magic,
                                                                      f.name))
-    if rows != 28 or cols != 28:
+    if rows != 64 or cols != 76:
       raise ValueError(
           'Invalid MNIST file %s: Expected 28x28 images, found %dx%d' %
           (f.name, rows, cols))
@@ -105,15 +105,11 @@ def dataset(directory, images_file, labels_file):
       labels_file, 1, header_bytes=8).map(decode_label)
   '''
   images = np.load(directory+images_file)
-  images = images[:20,150:178,:28].astype('float32')
+  images = images.astype('float32')
   images = images.reshape((images.shape[0],images.shape[1]*images.shape[2]))
   images = images/np.mean(images)
   labels = np.load(directory+labels_file)
-  C1_is = np.where((labels[:20,0]%10)==1)[0]
-  C2_is = np.where((labels[:20,0]%10)==2)[0]
-  labels = np.zeros((20,1),dtype=np.int32)
-  labels[C1_is] = 0
-  labels[C2_is] = 1
+  labels = labels[:,1].astype(np.int)
 
   return tf.data.Dataset.from_tensor_slices((images, labels))
 

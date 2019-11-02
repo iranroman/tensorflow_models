@@ -29,7 +29,7 @@ from official.utils.misc import distribution_utils
 from official.utils.misc import model_helpers
 
 
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-5
 
 
 def create_model(data_format):
@@ -52,10 +52,10 @@ def create_model(data_format):
     A tf.keras.Model.
   """
   if data_format == 'channels_first':
-    input_shape = [1, 28, 28]
+    input_shape = [1, 64, 76]
   else:
     assert data_format == 'channels_last'
-    input_shape = [28, 28, 1]
+    input_shape = [64, 76, 1]
 
   l = tf.keras.layers
   max_pool = l.MaxPooling2D(
@@ -66,7 +66,7 @@ def create_model(data_format):
       [
           l.Reshape(
               target_shape=input_shape,
-              input_shape=(28 * 28,)),
+              input_shape=(64 * 76,)),
           l.Conv2D(
               32,
               5,
@@ -84,7 +84,7 @@ def create_model(data_format):
           l.Flatten(),
           l.Dense(1024, activation=tf.nn.relu),
           l.Dropout(0.4),
-          l.Dense(2)
+          l.Dense(9)
       ])
 
 
@@ -199,7 +199,7 @@ def run_mnist(flags_obj):
     # randomness, while smaller sizes use less memory. MNIST is a small
     # enough dataset that we can easily shuffle the full epoch.
     ds = dataset.train(flags_obj.data_dir)
-    ds = ds.cache().shuffle(buffer_size=50000).batch(flags_obj.batch_size)
+    ds = ds.cache().shuffle(buffer_size=5000).batch(flags_obj.batch_size)
 
     # Iterate through the dataset a set number (`epochs_between_evals`) of times
     # during each training session.
@@ -229,7 +229,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 28, 28])
+    image = tf.placeholder(tf.float32, [None, 64, 76])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })
