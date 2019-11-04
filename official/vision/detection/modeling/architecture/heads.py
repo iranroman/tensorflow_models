@@ -25,7 +25,7 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 from tensorflow.python.keras import backend
 from official.vision.detection.modeling.architecture import nn_ops
-from official.vision.detection.utils import spatial_transform
+from official.vision.detection.ops import spatial_transform_ops
 
 
 class RpnHead(object):
@@ -124,7 +124,7 @@ class FastrcnnHead(object):
     """
     self._num_classes = num_classes
     self._mlp_head_dim = mlp_head_dim
-    self._batch_norm_relu = batch_norm_relu()
+    self._batch_norm_relu = batch_norm_relu
 
   def __call__(self, roi_features, is_training=None):
     """Box and class branches for the Mask-RCNN model.
@@ -151,11 +151,11 @@ class FastrcnnHead(object):
           units=self._mlp_head_dim, activation=None, name='fc6')(
               roi_features)
 
-      net = self._batch_norm_relu(net, is_training=is_training)
+      net = self._batch_norm_relu(fused=False)(net, is_training=is_training)
       net = tf.keras.layers.Dense(
           units=self._mlp_head_dim, activation=None, name='fc7')(
               net)
-      net = self._batch_norm_relu(net, is_training=is_training)
+      net = self._batch_norm_relu(fused=False)(net, is_training=is_training)
 
       class_outputs = tf.keras.layers.Dense(
           self._num_classes,
@@ -177,19 +177,19 @@ class MaskrcnnHead(object):
 
   def __init__(self,
                num_classes,
-               mrcnn_resolution,
+               mask_target_size,
                batch_norm_relu=nn_ops.BatchNormRelu):
     """Initialize params to build Fast R-CNN head.
 
     Args:
       num_classes: a integer for the number of classes.
-      mrcnn_resolution: a integer that is the resolution of masks.
+      mask_target_size: a integer that is the resolution of masks.
       batch_norm_relu: an operation that includes a batch normalization layer
         followed by a relu layer(optional).
     """
     self._num_classes = num_classes
-    self._mrcnn_resolution = mrcnn_resolution
-    self._batch_norm_relu = batch_norm_relu()
+    self._mask_target_size = mask_target_size
+    self._batch_norm_relu = batch_norm_relu
 
   def __call__(self, roi_features, class_indices, is_training=None):
     """Mask branch for the Mask-RCNN model.
@@ -240,7 +240,7 @@ class MaskrcnnHead(object):
               bias_initializer=tf.zeros_initializer(),
               name='mask-conv-l%d' % i)(
                   net)
-          net = self._batch_norm_relu(net, is_training=is_training)
+          net = self._batch_norm_relu()(net, is_training=is_training)
 
         kernel_size = (2, 2)
         fan_out = 256
@@ -256,7 +256,7 @@ class MaskrcnnHead(object):
             bias_initializer=tf.zeros_initializer(),
             name='conv5-mask')(
                 net)
-        net = self._batch_norm_relu(net, is_training=is_training)
+        net = self._batch_norm_relu()(net, is_training=is_training)
 
         kernel_size = (1, 1)
         fan_out = self._num_classes
@@ -272,7 +272,7 @@ class MaskrcnnHead(object):
             name='mask_fcn_logits')(
                 net)
         mask_outputs = tf.reshape(mask_outputs, [
-            -1, num_rois, self._mrcnn_resolution, self._mrcnn_resolution,
+            -1, num_rois, self._mask_target_size, self._mask_target_size,
             self._num_classes
         ])
 
@@ -508,7 +508,9 @@ class ShapemaskPriorHead(object):
       if self._shape_prior_path:
         if self._use_category_for_mask:
           fid = tf.io.gfile.GFile(self._shape_prior_path, 'rb')
-          class_tups = pickle.load(fid)
+          # The encoding='bytes' options is for incompatibility between python2
+          # and python3 pickle.
+          class_tups = pickle.load(fid, encoding='bytes')
           max_class_id = class_tups[-1][0] + 1
           class_masks = np.zeros((max_class_id, self._num_clusters,
                                   self._mask_crop_size, self._mask_crop_size),
@@ -542,7 +544,7 @@ class ShapemaskPriorHead(object):
       level_outer_boxes = outer_boxes / tf.pow(
           2., tf.expand_dims(detection_prior_levels, -1))
       detection_prior_levels = tf.cast(detection_prior_levels, tf.int32)
-      uniform_priors = spatial_transform.crop_mask_in_target_box(
+      uniform_priors = spatial_transform_ops.crop_mask_in_target_box(
           tf.ones([
               batch_size, self._num_of_instances, self._mask_crop_size,
               self._mask_crop_size
@@ -550,7 +552,7 @@ class ShapemaskPriorHead(object):
 
       # Prepare crop features.
       multi_level_features = self._get_multilevel_features(fpn_features)
-      crop_features = spatial_transform.single_level_feature_crop(
+      crop_features = spatial_transform_ops.single_level_feature_crop(
           multi_level_features, level_outer_boxes, detection_prior_levels,
           self._min_mask_level, self._mask_crop_size)
 
@@ -562,7 +564,7 @@ class ShapemaskPriorHead(object):
           batch_size, self._num_of_instances, self._mask_crop_size,
           self._mask_crop_size
       ])
-      predicted_detection_priors = spatial_transform.crop_mask_in_target_box(
+      predicted_detection_priors = spatial_transform_ops.crop_mask_in_target_box(
           fused_shape_priors, boxes, outer_boxes, self._mask_crop_size)
       predicted_detection_priors = tf.reshape(
           predicted_detection_priors,

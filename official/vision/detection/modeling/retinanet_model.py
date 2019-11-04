@@ -40,10 +40,8 @@ class COCOMetrics(object):
     self._evaluator = eval_factory.evaluator_generator(params.eval)
 
   def update_state(self, y_true, y_pred):
-    labels, outputs = y_true, y_pred
-
-    labels = tf.nest.map_structure(lambda x: x.numpy(), labels)
-    outputs = tf.nest.map_structure(lambda x: x.numpy(), outputs)
+    labels = tf.nest.map_structure(lambda x: x.numpy(), y_true)
+    outputs = tf.nest.map_structure(lambda x: x.numpy(), y_pred)
     groundtruths = {}
     predictions = {}
     for key, val in outputs.items():
@@ -60,8 +58,7 @@ class COCOMetrics(object):
     return self._evaluator.evaluate()
 
   def reset_states(self):
-    logging.info('State is reset on calling metric.result().')
-    pass
+    return self._evaluator.reset()
 
 
 class RetinanetModel(base_model.Model):
@@ -162,14 +159,16 @@ class RetinanetModel(base_model.Model):
     boxes, scores, classes, valid_detections = self._generate_detections_fn(
         inputs=(outputs['box_outputs'], outputs['cls_outputs'],
                 labels['anchor_boxes'], labels['image_info'][:, 1:2, :]))
-    outputs.update({
+    # Discards the old output tensors to save memory. The `cls_outputs` and
+    # `box_outputs` are pretty big and could potentiall lead to memory issue.
+    outputs = {
         'source_id': labels['groundtruths']['source_id'],
         'image_info': labels['image_info'],
         'num_detections': valid_detections,
         'detection_boxes': boxes,
         'detection_classes': classes,
         'detection_scores': scores,
-    })
+    }
 
     if 'groundtruths' in labels:
       labels['source_id'] = labels['groundtruths']['source_id']

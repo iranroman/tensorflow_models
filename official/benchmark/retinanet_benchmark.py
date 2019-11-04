@@ -25,14 +25,16 @@ import os
 import time
 
 from absl import flags
+from absl import logging
 from absl.testing import flagsaver
 import tensorflow as tf
 # pylint: enable=g-bad-import-order
 
-from official.utils.flags import core as flags_core
 from official.benchmark import bert_benchmark_utils as benchmark_utils
+from official.utils.flags import core as flags_core
 from official.vision.detection import main as detection
 
+TMP_DIR = os.getenv('TMPDIR')
 FLAGS = flags.FLAGS
 
 # pylint: disable=line-too-long
@@ -95,10 +97,8 @@ class DetectionBenchmarkBase(tf.test.Benchmark):
     }]
     if self.timer_callback:
       metrics.append({
-          'name':
-              'exp_per_second',
-          'value':
-              self.timer_callback.get_examples_per_sec(FLAGS.train_batch_size)
+          'name': 'exp_per_second',
+          'value': self.timer_callback.get_examples_per_sec(train_batch_size)
       })
     else:
       metrics.append({
@@ -134,7 +134,7 @@ class RetinanetBenchmarkBase(DetectionBenchmarkBase):
 
   def _run_detection_main(self):
     """Starts detection job."""
-    return detection.main('unused_argv')
+    return detection.run(callbacks=[self.timer_callback])
 
 
 class RetinanetAccuracy(RetinanetBenchmarkBase):
@@ -145,7 +145,7 @@ class RetinanetAccuracy(RetinanetBenchmarkBase):
   `benchmark_(number of gpus)_gpu_(dataset type)` format.
   """
 
-  def __init__(self, output_dir=None, **kwargs):
+  def __init__(self, output_dir=TMP_DIR, **kwargs):
     super(RetinanetAccuracy, self).__init__(output_dir=output_dir)
 
   def _run_and_report_benchmark(self, min_ap=0.325, max_ap=0.35):
@@ -166,7 +166,8 @@ class RetinanetAccuracy(RetinanetBenchmarkBase):
         stats=summary,
         wall_time_sec=wall_time_sec,
         min_ap=min_ap,
-        max_ap=max_ap)
+        max_ap=max_ap,
+        train_batch_size=self.params_override['train']['batch_size'])
 
   def _setup(self):
     super(RetinanetAccuracy, self)._setup()
@@ -209,7 +210,7 @@ class RetinanetBenchmarkReal(RetinanetAccuracy):
   `benchmark_(number of gpus)_gpu` format.
   """
 
-  def __init__(self, output_dir=None, **kwargs):
+  def __init__(self, output_dir=TMP_DIR, **kwargs):
     super(RetinanetBenchmarkReal, self).__init__(output_dir=output_dir)
 
   @flagsaver.flagsaver
@@ -217,15 +218,24 @@ class RetinanetBenchmarkReal(RetinanetAccuracy):
     """Run RetinaNet model accuracy test with 8 GPUs."""
     self._setup()
     params = copy.deepcopy(self.params_override)
-    params['train']['total_steps'] = 1875 # One epoch.
-    params['train']['iterations_per_loop'] = 125
+    params['train']['total_steps'] = 1875  # One epoch.
+    # The iterations_per_loop must be one, otherwise the number of examples per
+    # second would be wrong. Currently only support calling callback per batch
+    # when each loop only runs on one batch, i.e. host loop for one step. The
+    # performance of this situation might be lower than the case of
+    # iterations_per_loop > 1.
+    # Related bug: b/135933080
+    params['train']['iterations_per_loop'] = 1
     params['eval']['eval_samples'] = 8
     FLAGS.params_override = json.dumps(params)
     FLAGS.model_dir = self._get_model_dir('real_benchmark_8_gpu_coco')
-    # Sets timer_callback to None as we do not use it now.
-    self.timer_callback = None
+    # Use negative value to avoid saving checkpoints.
+    FLAGS.save_checkpoint_freq = -1
+    if self.timer_callback is None:
+      logging.error('Cannot measure performance without timer callback')
+    else:
+      self._run_and_report_benchmark()
 
-    self._run_and_report_benchmark()
 
 if __name__ == '__main__':
   tf.test.main()

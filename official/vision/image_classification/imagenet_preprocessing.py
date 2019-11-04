@@ -54,7 +54,7 @@ _SHUFFLE_BUFFER = 10000
 _R_MEAN = 123.68
 _G_MEAN = 116.78
 _B_MEAN = 103.94
-_CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
+CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
 
 # The lower bound for the smallest side of the image for aspect-preserving
 # resizing. For example, if an image is 500 x 1000, it will be resized to
@@ -104,20 +104,11 @@ def process_record_dataset(dataset,
     logging.info(
         'datasets_num_private_threads: %s', datasets_num_private_threads)
 
-  # Disable intra-op parallelism to optimize for throughput instead of latency.
-  options = tf.data.Options()
-  options.experimental_threading.max_intra_op_parallelism = 1
-  dataset = dataset.with_options(options)
-
-  # Prefetches a batch at a time to smooth out the time taken to load input
-  # files for shuffling and processing.
-  dataset = dataset.prefetch(buffer_size=batch_size)
   if is_training:
     # Shuffles records before repeating to respect epoch boundaries.
     dataset = dataset.shuffle(buffer_size=shuffle_buffer)
     # Repeats the dataset for the number of epochs to train.
     dataset = dataset.repeat()
-
 
   # Parses the raw records into images and labels.
   dataset = dataset.map(
@@ -135,7 +126,6 @@ def process_record_dataset(dataset,
 
   options = tf.data.Options()
   options.experimental_slack = tf_data_experimental_slack
-  options.experimental_allow_stateful = True
   dataset = dataset.with_options(options)
 
   return dataset
@@ -265,7 +255,8 @@ def input_fn(is_training,
              parse_record_fn=parse_record,
              input_context=None,
              drop_remainder=False,
-             tf_data_experimental_slack=False):
+             tf_data_experimental_slack=False,
+             training_dataset_cache=False):
   """Input function which provides batches for train or eval.
 
   Args:
@@ -282,6 +273,9 @@ def input_fn(is_training,
       batches. If True, the batch dimension will be static.
     tf_data_experimental_slack: Whether to enable tf.data's
       `experimental_slack` option.
+    training_dataset_cache: Whether to cache the training dataset on workers.
+       Typically used to improve training performance when training data is in
+       remote storage and can fit into worker memory.
 
   Returns:
     A dataset that can be used for iteration.
@@ -308,6 +302,11 @@ def input_fn(is_training,
       tf.data.TFRecordDataset,
       cycle_length=10,
       num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+  if is_training and training_dataset_cache:
+    # Improve training performance when training data is in remote storage and
+    # can fit into worker memory.
+    dataset = dataset.cache()
 
   return process_record_dataset(
       dataset=dataset,
@@ -534,4 +533,4 @@ def preprocess_image(image_buffer, bbox, output_height, output_width,
 
   image.set_shape([output_height, output_width, num_channels])
 
-  return _mean_image_subtraction(image, _CHANNEL_MEANS, num_channels)
+  return _mean_image_subtraction(image, CHANNEL_MEANS, num_channels)

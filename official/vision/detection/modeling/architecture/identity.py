@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Common util functions and classes used by CTL."""
+"""Identity Fn that forwards the input features."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from absl import flags
 
+class Identity(object):
+  """Identity function that forwards the input features."""
 
-def define_ctl_flags():
-  """Define flags for CTL."""
+  def __call__(self, features, is_training=False):
+    """Only forwards the input features."""
+    return features
 
-  flags.DEFINE_boolean(name='use_tf_function', default=True,
-                       help='Wrap the train and test step inside a '
-                       'tf.function.')
-  flags.DEFINE_boolean(name='single_l2_loss_op', default=False,
-                       help='Calculate L2_loss on concatenated weights, '
-                       'instead of using Keras per-layer L2 loss.')

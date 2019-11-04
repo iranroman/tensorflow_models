@@ -63,7 +63,8 @@ def define_performance(num_parallel_calls=False, inter_op=False, intra_op=False,
                        dynamic_loss_scale=False, fp16_implementation=False,
                        loss_scale=False,
                        tf_data_experimental_slack=False, enable_xla=False,
-                       force_v2_in_keras_compile=False):
+                       force_v2_in_keras_compile=False,
+                       training_dataset_cache=False):
   """Register flags for specifying performance tuning arguments.
 
   Args:
@@ -92,6 +93,9 @@ def define_performance(num_parallel_calls=False, inter_op=False, intra_op=False,
     force_v2_in_keras_compile: Forces the use of run_distribued path even if not
       using a `strategy`. This is not the same as
       `tf.distribute.OneDeviceStrategy`
+    training_dataset_cache: Whether to cache the training dataset on workers.
+       Typically used to improve training performance when training data is in
+       remote storage and can fit into worker memory.
 
   Returns:
     A list of flags for core.py to marks as key flags.
@@ -191,16 +195,15 @@ def define_performance(num_parallel_calls=False, inter_op=False, intra_op=False,
         return loss_scale > 0
 
     if fp16_implementation:
-      # Currently, this flag is only defined for the estimator resnet and transformer models.
       flags.DEFINE_enum(
-          name="fp16_implementation", default="casting",
-          enum_values=("casting', 'graph_rewrite"),
+          name="fp16_implementation", default="keras",
+          enum_values=("keras', 'graph_rewrite"),
           help=help_wrap(
               "When --dtype=fp16, how fp16 should be implemented. This has no "
-              "impact on correctness. 'casting' will cause manual tf.casts to "
-              "be inserted in the model. 'graph_rewrite' means "
-              "tf.train.experimental.enable_mixed_precision_graph_rewrite will "
-              "be used to automatically use fp16 without any manual casts."))
+              "impact on correctness. 'keras' uses the "
+              "tf.keras.mixed_precision API. 'graph_rewrite' uses the "
+              "tf.train.experimental.enable_mixed_precision_graph_rewrite "
+              "API."))
 
       @flags.multi_flags_validator(["fp16_implementation", "dtype",
                                     "loss_scale"])
@@ -261,6 +264,16 @@ def define_performance(num_parallel_calls=False, inter_op=False, intra_op=False,
         help=help_wrap(
             "Determines how many batches to process in parallel when using "
             "map and batch from tf.data.")
+    )
+
+  if training_dataset_cache:
+    flags.DEFINE_boolean(
+        name="training_dataset_cache",
+        default=False,
+        help=help_wrap(
+            "Determines whether to cache the training dataset on workers. "
+            "Typically used to improve training performance when training "
+            "data is in remote storage and can fit into worker memory.")
     )
 
   if tf_data_experimental_slack:

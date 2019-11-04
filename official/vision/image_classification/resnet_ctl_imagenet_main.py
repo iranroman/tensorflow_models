@@ -23,7 +23,6 @@ from absl import flags
 from absl import logging
 import tensorflow as tf
 
-from official.resnet.ctl import ctl_common
 from official.vision.image_classification import imagenet_preprocessing
 from official.vision.image_classification import common
 from official.vision.image_classification import resnet_model
@@ -32,6 +31,13 @@ from official.utils.logs import logger
 from official.utils.misc import distribution_utils
 from official.utils.misc import keras_utils
 from official.utils.misc import model_helpers
+
+flags.DEFINE_boolean(name='use_tf_function', default=True,
+                     help='Wrap the train and test step inside a '
+                     'tf.function.')
+flags.DEFINE_boolean(name='single_l2_loss_op', default=False,
+                     help='Calculate L2_loss on concatenated weights, '
+                     'instead of using Keras per-layer L2 loss.')
 
 
 def build_stats(train_result, eval_result, time_callback):
@@ -182,7 +188,11 @@ def run(flags_obj):
       enable_xla=flags_obj.enable_xla)
 
   dtype = flags_core.get_tf_dtype(flags_obj)
-  if dtype == tf.bfloat16:
+  if dtype == tf.float16:
+    policy = tf.compat.v2.keras.mixed_precision.experimental.Policy(
+        'mixed_float16')
+    tf.compat.v2.keras.mixed_precision.experimental.set_policy(policy)
+  elif dtype == tf.bfloat16:
     policy = tf.compat.v2.keras.mixed_precision.experimental.Policy(
         'mixed_bfloat16')
     tf.compat.v2.keras.mixed_precision.experimental.set_policy(policy)
@@ -229,7 +239,13 @@ def run(flags_obj):
         compute_lr_on_cpu=True)
     optimizer = common.get_optimizer(lr_schedule)
 
-    if flags_obj.fp16_implementation == 'graph_rewrite':
+    if dtype == tf.float16:
+      loss_scale = flags_core.get_loss_scale(flags_obj, default_for_fp16=128)
+      optimizer = tf.keras.mixed_precision.experimental.LossScaleOptimizer(
+          optimizer, loss_scale)
+    elif flags_obj.fp16_implementation == 'graph_rewrite':
+      # `dtype` is still float32 in this case. We built the graph in float32 and
+      # let the graph rewrite change parts of it float16.
       if not flags_obj.use_tf_function:
         raise ValueError('--fp16_implementation=graph_rewrite requires '
                          '--use_tf_function to be true')
@@ -379,6 +395,4 @@ def main(_):
 if __name__ == '__main__':
   logging.set_verbosity(logging.INFO)
   common.define_keras_flags()
-  ctl_common.define_ctl_flags()
-  flags.adopt_module_key_flags(ctl_common)
   app.run(main)
