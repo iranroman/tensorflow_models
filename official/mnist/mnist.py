@@ -51,11 +51,11 @@ def create_model(data_format):
   Returns:
     A tf.keras.Model.
   """
-  if data_format == 'channels_first':
-    input_shape = [1, 64, 76]
-  else:
-    assert data_format == 'channels_last'
-    input_shape = [64, 76, 1]
+  #if data_format == 'channels_first':
+  input_shape = [1, 64, 75]
+  #else:
+  #  assert data_format == 'channels_last'
+  #  input_shape = [64, 75, 1]
 
   l = tf.keras.layers
   max_pool = l.MaxPooling2D(
@@ -66,7 +66,7 @@ def create_model(data_format):
       [
           l.Reshape(
               target_shape=input_shape,
-              input_shape=(64 * 76,)),
+              input_shape=(64 * 75,)),
           l.Conv2D(
               32,
               5,
@@ -99,10 +99,11 @@ def define_mnist_flags():
                                 all_reduce_alg=True)
   flags_core.define_image()
   flags.adopt_module_key_flags(flags_core)
-  flags_core.set_defaults(data_dir='/Users/iranrroman/Research/BeatNN/experiments/',
+  flags_core.set_defaults(data_dir='/home/iran/Research/BeatNN/experiments/',
                           model_dir='/tmp/mnist_model',
                           batch_size=100,
-                          train_epochs=40)
+                          train_epochs=100,
+                          epochs_between_evals=100)
 
 
 def model_fn(features, labels, mode, params):
@@ -202,7 +203,7 @@ def run_mnist(flags_obj):
     # randomness, while smaller sizes use less memory. MNIST is a small
     # enough dataset that we can easily shuffle the full epoch.
     ds = dataset.train(flags_obj.data_dir)
-    ds = ds.cache().shuffle(buffer_size=50000).batch(flags_obj.batch_size)
+    ds = ds.cache().shuffle(buffer_size=8000).batch(flags_obj.batch_size)
 
     # Iterate through the dataset a set number (`epochs_between_evals`) of times
     # during each training session.
@@ -232,7 +233,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 64, 76])
+    image = tf.placeholder(tf.float32, [None, 64, 75])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })
