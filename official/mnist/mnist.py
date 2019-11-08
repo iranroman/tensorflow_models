@@ -102,7 +102,7 @@ def define_mnist_flags():
   flags_core.set_defaults(data_dir='/home/iran/Research/BeatNN/experiments/',
                           model_dir='/tmp/mnist_model',
                           batch_size=100,
-                          train_epochs=100,
+                          train_epochs=10000,
                           epochs_between_evals=100)
 
 
