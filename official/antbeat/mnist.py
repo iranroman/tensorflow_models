@@ -100,7 +100,7 @@ def define_mnist_flags():
   flags_core.define_image()
   flags.adopt_module_key_flags(flags_core)
   flags_core.set_defaults(data_dir='/home/iran/Research/BeatNN/experiments/',
-                          model_dir='/tmp/mnist_model',
+                          model_dir='/tmp/antbeat_model',
                           batch_size=100,
                           train_epochs=100,
                           epochs_between_evals=10)

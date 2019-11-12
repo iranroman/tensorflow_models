@@ -51,32 +51,24 @@ def create_model(data_format):
   Returns:
     A tf.keras.Model.
   """
-  #if data_format == 'channels_first':
-  input_shape = [1, 64, 75]
-  #else:
-  #  assert data_format == 'channels_last'
-  #  input_shape = [64, 75, 1]
 
   l = tf.keras.layers
   max_pool = l.MaxPooling2D(
-      (2, 2), (2, 2), padding='same', data_format=data_format)
+      (1, 2), (1, 2), padding='same', data_format=data_format)
   # The model consists of a sequential chain of layers, so tf.keras.Sequential
   # (a subclass of tf.keras.Model) makes for a compact description.
   return tf.keras.Sequential(
       [
-          l.Reshape(
-              target_shape=input_shape,
-              input_shape=(64 * 75,)),
           l.Conv2D(
               32,
-              5,
+              (1,5),
               padding='same',
               data_format=data_format,
               activation=tf.nn.relu),
           max_pool,
           l.Conv2D(
               64,
-              5,
+              (1,5),
               padding='same',
               data_format=data_format,
               activation=tf.nn.relu),
@@ -184,9 +176,6 @@ def run_mnist(flags_obj):
       train_distribute=distribution_strategy, session_config=session_config)
 
   data_format = flags_obj.data_format
-  if data_format is None:
-    data_format = ('channels_first'
-                   if tf.test.is_built_with_cuda() else 'channels_last')
   mnist_classifier = tf.estimator.Estimator(
       model_fn=model_function,
       model_dir=flags_obj.model_dir,
@@ -233,7 +222,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 64, 75])
+    image = tf.placeholder(tf.float32, [None, 1, 75, 64])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })

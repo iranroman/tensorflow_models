@@ -121,7 +121,7 @@ def dataset(directory, images_file, labels_file):
 
   # finalize data pre-processing
   images = images.astype('float32')
-  images = images.reshape((images.shape[0],images.shape[1]*images.shape[2]))
+  images = np.expand_dims(images,axis=2)
   images = images/2.14457664857678e-08
   labels = labels[:,2].astype(np.int)
 
