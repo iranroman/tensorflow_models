@@ -121,19 +121,21 @@ def dataset(directory, images_file, labels_file):
 
   # finalize data pre-processing
   images = images.astype('float32')
-  images = np.expand_dims(images,axis=2)
-  images = images/2.14457664857678e-08
-  labels = labels[:,2].astype(np.int)
+  #images = np.expand_dims(images,axis=2)
+  idx = np.random.choice(images.shape[0],images.shape[0]//4,replace=False)
+  images = images[idx]
+  images = images/3.0962231038991644e-11
+  labels = labels[idx,2].astype(np.int)
 
   return tf.data.Dataset.from_tensor_slices((images, labels))
 
 
 def train(directory):
   """tf.data.Dataset object for MNIST training data."""
-  return dataset(directory, 'tr_data/x_tr.npy',
-                 'tr_data/y_tr.npy')
+  return dataset(directory, 'tr_data/x_tr_w.npy',
+                 'tr_data/y_tr_w.npy')
 
 
 def test(directory):
   """tf.data.Dataset object for MNIST test data."""
-  return dataset(directory, 'ts_data/x_ts.npy', 'ts_data/y_ts.npy')
+  return dataset(directory, 'ts_data/x_ts_w.npy', 'ts_data/y_ts_w.npy')
