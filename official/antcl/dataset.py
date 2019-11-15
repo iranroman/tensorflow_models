@@ -25,7 +25,7 @@ import tempfile
 import numpy as np
 from six.moves import urllib
 import tensorflow as tf
-
+from sklearn import decomposition
 
 def read32(bytestream):
   """Read 4 bytes from bytestream as an unsigned 32-bit integer."""
@@ -121,21 +121,74 @@ def dataset(directory, images_file, labels_file):
 
   # finalize data pre-processing
   images = images.astype('float32')
-  #images = np.expand_dims(images,axis=2)
-  idx = np.random.choice(images.shape[0],images.shape[0]//4,replace=False)
-  images = images[idx]
-  images = images/3.0962231038991644e-11
-  labels = labels[idx,2].astype(np.int)
+  GA = np.mean(images,axis=0)
+  pca = decomposition.PCA()
+  GA_PCA = pca.fit_transform(GA)
+  PC1 = GA_PCA[:,0].reshape(1,64)
+  PC2 = GA_PCA[:,1].reshape(1,64)
+  PC3 = GA_PCA[:,2].reshape(1,64)
+  images = np.transpose(images,axes=(0,2,1))
+  im_PC1 = np.dot(images,PC1.T)
+  im_PC2 = np.dot(images,PC2.T)
+  im_PC3 = np.dot(images,PC3.T)
+  images = np.concatenate((im_PC1,im_PC2,im_PC3),axis=2)
+  images = np.transpose(images,axes=(0,2,1))
+  images = np.expand_dims(images,axis=2)
+  images = images/4.1177626e-12
+  labels = labels[:,2].astype(np.int)
 
   return tf.data.Dataset.from_tensor_slices((images, labels))
 
+def dataset_t(directory, images_file, labels_file):
+  # obtain data and labels
+
+  images_tr = np.load(directory+'tr_data/x_tr.npy',)
+  labels_tr = np.load(directory+'tr_data/y_tr.npy',)
+
+  idx_phase = np.nonzero(np.in1d(labels_tr[:,1],[1,2]))[0]
+  images_tr = images_tr[idx_phase]
+
+  images = np.load(directory+images_file)
+  labels = np.load(directory+labels_file)
+ 
+  # get data indices of interest for this specific experiment
+  idx_phase = np.nonzero(np.in1d(labels[:,1],[1,2]))[0]
+  images = images[idx_phase]
+  labels = labels[idx_phase]
+  idx_trial_type = np.nonzero(np.in1d(labels[:,2],[0,1,2]))[0]
+  labels[idx_trial_type,2] = 0
+  idx_trial_type = np.nonzero(np.in1d(labels[:,2],[3,4,5]))[0]
+  labels[idx_trial_type,2] = 1
+  idx_trial_type = np.nonzero(np.in1d(labels[:,2],[6,7,8]))[0]
+  labels[idx_trial_type,2] = 2
+
+  # finalize data pre-processing
+  images = images.astype('float32')
+  images_tr = images_tr.astype('float32')
+  GA = np.mean(images_tr,axis=0)
+  pca = decomposition.PCA()
+  GA_PCA = pca.fit_transform(GA)
+  PC1 = GA_PCA[:,0].reshape(1,64)
+  PC2 = GA_PCA[:,1].reshape(1,64)
+  PC3 = GA_PCA[:,2].reshape(1,64)
+  images = np.transpose(images,axes=(0,2,1))
+  im_PC1 = np.dot(images,PC1.T)
+  im_PC2 = np.dot(images,PC2.T)
+  im_PC3 = np.dot(images,PC3.T)
+  images = np.concatenate((im_PC1,im_PC2,im_PC3),axis=2)
+  images = np.transpose(images,axes=(0,2,1))
+  images = np.expand_dims(images,axis=2)
+  images = images/4.1177626e-12
+  labels = labels[:,2].astype(np.int)
+
+  return tf.data.Dataset.from_tensor_slices((images, labels))
 
 def train(directory):
   """tf.data.Dataset object for MNIST training data."""
-  return dataset(directory, 'tr_data/x_tr_w.npy',
-                 'tr_data/y_tr_w.npy')
+  return dataset(directory, 'tr_data/x_tr.npy',
+                 'tr_data/y_tr.npy')
 
 
 def test(directory):
   """tf.data.Dataset object for MNIST test data."""
-  return dataset(directory, 'ts_data/x_ts_w.npy', 'ts_data/y_ts_w.npy')
+  return dataset_t(directory, 'ts_data/x_ts.npy', 'ts_data/y_ts.npy')

@@ -75,7 +75,7 @@ def create_model(data_format):
           max_pool,
           l.Flatten(),
           l.Dense(1024, activation=tf.nn.relu),
-          l.Dropout(0.6),
+          l.Dropout(0.4),
           l.Dense(3)
       ])
 
@@ -222,7 +222,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 64, 4, 75])
+    image = tf.placeholder(tf.float32, [None, 3, 1, 75])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })
