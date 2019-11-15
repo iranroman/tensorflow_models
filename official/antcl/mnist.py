@@ -222,7 +222,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 3, 1, 75])
+    image = tf.placeholder(tf.float32, [None, 64, 1, 75])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })

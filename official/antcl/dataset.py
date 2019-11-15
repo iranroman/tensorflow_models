@@ -120,26 +120,25 @@ def dataset(directory, images_file, labels_file):
   labels[idx_trial_type,2] = 2
 
   # finalize data pre-processing
+  if images_file == 'ts_data/x_ts.npy':
+      images_tr = np.load(directory+'tr_data/x_tr.npy',)
+      labels_tr = np.load(directory+'tr_data/y_tr.npy',)
+      idx_phase = np.nonzero(np.in1d(labels_tr[:,1],[1,2]))[0]
+      images_tr = images_tr[idx_phase].astype('float32')
+  else:
+      images_tr = images.astype('float32')
+
   images = images.astype('float32')
-  GA = np.mean(images,axis=0)
-  pca = decomposition.PCA()
-  GA_PCA = pca.fit_transform(GA)
-  PC1 = GA_PCA[:,0].reshape(1,64)
-  PC2 = GA_PCA[:,1].reshape(1,64)
-  PC3 = GA_PCA[:,2].reshape(1,64)
-  images = np.transpose(images,axes=(0,2,1))
-  im_PC1 = np.dot(images,PC1.T)
-  im_PC2 = np.dot(images,PC2.T)
-  im_PC3 = np.dot(images,PC3.T)
-  images = np.concatenate((im_PC1,im_PC2,im_PC3),axis=2)
-  images = np.transpose(images,axes=(0,2,1))
+  images_mean = np.mean(images_tr,axis=0)
+  images -= images_mean
+  images_std = np.std(images_tr,axis=0)
+  images = images/images_std
   images = np.expand_dims(images,axis=2)
-  images = images/4.1177626e-12
   labels = labels[:,2].astype(np.int)
 
   return tf.data.Dataset.from_tensor_slices((images, labels))
 
-def dataset_t(directory, images_file, labels_file):
+def dataset_pca(directory, images_file, labels_file):
   # obtain data and labels
 
   images_tr = np.load(directory+'tr_data/x_tr.npy',)
@@ -191,4 +190,4 @@ def train(directory):
 
 def test(directory):
   """tf.data.Dataset object for MNIST test data."""
-  return dataset_t(directory, 'ts_data/x_ts.npy', 'ts_data/y_ts.npy')
+  return dataset(directory, 'ts_data/x_ts.npy', 'ts_data/y_ts.npy')
