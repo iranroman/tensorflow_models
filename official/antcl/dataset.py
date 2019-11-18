@@ -26,6 +26,7 @@ import numpy as np
 from six.moves import urllib
 import tensorflow as tf
 from sklearn import decomposition
+from sklearn import preprocessing
 
 def read32(bytestream):
   """Read 4 bytes from bytestream as an unsigned 32-bit integer."""
@@ -105,7 +106,7 @@ def dataset(directory, images_file, labels_file):
       labels_file, 1, header_bytes=8).map(decode_label)
   '''
   # obtain data and labels
-  images = np.load(directory+images_file)
+  images = np.abs(np.load(directory+images_file))
   labels = np.load(directory+labels_file)
  
   # get data indices of interest for this specific experiment
@@ -121,19 +122,31 @@ def dataset(directory, images_file, labels_file):
 
   # finalize data pre-processing
   if images_file == 'ts_data/x_ts.npy':
-      images_tr = np.load(directory+'tr_data/x_tr.npy',)
+      images_tr = np.abs(np.load(directory+'tr_data/x_tr.npy',))
       labels_tr = np.load(directory+'tr_data/y_tr.npy',)
       idx_phase = np.nonzero(np.in1d(labels_tr[:,1],[1,2]))[0]
-      images_tr = images_tr[idx_phase].astype('float32')
+      images_tr = images_tr[idx_phase]
   else:
-      images_tr = images.astype('float32')
+      images_tr = images
 
+  images = 1e9*images
+  images_tr = 1e9*images_tr
+  scaler = preprocessing.StandardScaler().fit(np.reshape(images_tr,(images_tr.shape[0],images_tr.shape[1]*images_tr.shape[2])))
+  images = scaler.transform(np.reshape(images,(images.shape[0],images.shape[1]*images.shape[2])))
+  images = np.reshape(images,(images.shape[0],images_tr.shape[1],images_tr.shape[2]))
   images = images.astype('float32')
-  images_mean = np.mean(images_tr,axis=0)
-  images -= images_mean
-  images_std = np.std(images_tr,axis=0)
-  images = images/images_std
+  #images_mean = np.mean(images_tr,axis=0)
+  #images -= images_mean
+  #images_tr -= images_mean
+  #images_std = np.std(images_tr,axis=0)
+  #images = images/images_std
+  #images_tr = images_tr/images_std
   images = np.expand_dims(images,axis=2)
+  images = images[:,:,:,10:35]
+  print(np.mean(images,axis=0))
+  print(np.std(images,axis=0))
+  print(np.mean(images))
+  input()
   labels = labels[:,2].astype(np.int)
 
   return tf.data.Dataset.from_tensor_slices((images, labels))

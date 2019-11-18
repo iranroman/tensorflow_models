@@ -59,24 +59,30 @@ def create_model(data_format):
   # (a subclass of tf.keras.Model) makes for a compact description.
   return tf.keras.Sequential(
       [
+          l.Dropout(0.1),
           l.Conv2D(
               32,
               (1,5),
               padding='same',
               data_format=data_format,
-              activation=tf.nn.relu),
+              activation=tf.nn.relu,
+              kernel_regularizer=tf.keras.regularizers.l2(0.01)),
           max_pool,
+          l.Dropout(0.2),
           l.Conv2D(
               64,
               (1,5),
               padding='same',
               data_format=data_format,
-              activation=tf.nn.relu),
+              activation=tf.nn.relu,
+              kernel_regularizer=tf.keras.regularizers.l2(0.01)),
           max_pool,
+          l.Dropout(0.3),
           l.Flatten(),
-          l.Dense(1024, activation=tf.nn.relu),
+          l.Dense(1024, 
+              activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
           l.Dropout(0.4),
-          l.Dense(3)
+          l.Dense(3, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
       ])
 
 
@@ -94,7 +100,7 @@ def define_mnist_flags():
   flags_core.set_defaults(data_dir='/home/iran/Research/BeatNN/experiments/',
                           model_dir='/tmp/mnist_model',
                           batch_size=100,
-                          train_epochs=200,
+                          train_epochs=100,
                           epochs_between_evals=10)
 
 
@@ -192,7 +198,7 @@ def run_mnist(flags_obj):
     # randomness, while smaller sizes use less memory. MNIST is a small
     # enough dataset that we can easily shuffle the full epoch.
     ds = dataset.train(flags_obj.data_dir)
-    ds = ds.cache().shuffle(buffer_size=8000).batch(flags_obj.batch_size)
+    ds = ds.cache().shuffle(buffer_size=20000).batch(flags_obj.batch_size)
 
     # Iterate through the dataset a set number (`epochs_between_evals`) of times
     # during each training session.
