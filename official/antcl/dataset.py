@@ -106,26 +106,37 @@ def dataset(directory, images_file, labels_file):
       labels_file, 1, header_bytes=8).map(decode_label)
   '''
   # obtain data and labels
-  images = np.abs(np.load(directory+images_file))
+  images = np.abs(np.load(directory+images_file))[:,:,10:35]
+  images = np.delete(images,[32,42,23,31,41,33,59,63,14,22],axis=1)
+  images = 1e6*images
+  images = images.astype('float32')
   labels = np.load(directory+labels_file)
  
   # get data indices of interest for this specific experiment
   idx_phase = np.nonzero(np.in1d(labels[:,1],[1,2]))[0]
   images = images[idx_phase]
   labels = labels[idx_phase]
-  idx_trial_type = np.nonzero(np.in1d(labels[:,2],[0,1,2]))[0]
-  labels[idx_trial_type,2] = 0
-  idx_trial_type = np.nonzero(np.in1d(labels[:,2],[3,4,5]))[0]
-  labels[idx_trial_type,2] = 1
-  idx_trial_type = np.nonzero(np.in1d(labels[:,2],[6,7,8]))[0]
-  labels[idx_trial_type,2] = 2
-
+  idx_trial_type = np.nonzero(np.in1d(labels[:,0],[0,1,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]))[0]
+  labels = np.delete(labels, idx_trial_type, axis=0)
+  images = np.delete(images, idx_trial_type, axis=0)
+  idx_trial_type = np.nonzero(np.in1d(labels[:,0],[2]))[0]
+  labels[idx_trial_type,0] = 0
+  idx_trial_type = np.nonzero(np.in1d(labels[:,0],[5]))[0]
+  labels[idx_trial_type,0] = 1
+  images = np.expand_dims(images,axis=2)
+  print(images)
+  print(images.shape)
+  input()
+  '''
   # finalize data pre-processing
   if images_file == 'ts_data/x_ts.npy':
       images_tr = np.abs(np.load(directory+'tr_data/x_tr.npy',))
       labels_tr = np.load(directory+'tr_data/y_tr.npy',)
       idx_phase = np.nonzero(np.in1d(labels_tr[:,1],[1,2]))[0]
       images_tr = images_tr[idx_phase]
+      labels_tr = labels_tr[idx_phase]
+      idx_trial_type = np.nonzero(np.in1d(labels_tr[:,2],[6,7,8]))[0]
+      images_tr = np.delete(images_tr, idx_trial_type, axis=0)
   else:
       images_tr = images
 
@@ -147,7 +158,8 @@ def dataset(directory, images_file, labels_file):
   print(np.std(images,axis=0))
   print(np.mean(images))
   input()
-  labels = labels[:,2].astype(np.int)
+  '''
+  labels = labels[:,0].astype(np.int)
 
   return tf.data.Dataset.from_tensor_slices((images, labels))
 

@@ -82,7 +82,7 @@ def create_model(data_format):
           l.Dense(1024, 
               activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
           l.Dropout(0.4),
-          l.Dense(3, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+          l.Dense(2, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
       ])
 
 
@@ -198,7 +198,7 @@ def run_mnist(flags_obj):
     # randomness, while smaller sizes use less memory. MNIST is a small
     # enough dataset that we can easily shuffle the full epoch.
     ds = dataset.train(flags_obj.data_dir)
-    ds = ds.cache().shuffle(buffer_size=20000).batch(flags_obj.batch_size)
+    ds = ds.cache().shuffle(buffer_size=7000).batch(flags_obj.batch_size)
 
     # Iterate through the dataset a set number (`epochs_between_evals`) of times
     # during each training session.
@@ -228,7 +228,7 @@ def run_mnist(flags_obj):
 
   # Export the model
   if flags_obj.export_dir is not None:
-    image = tf.placeholder(tf.float32, [None, 64, 1, 75])
+    image = tf.placeholder(tf.float32, [None, 64, 1, 35])
     input_fn = tf.estimator.export.build_raw_serving_input_receiver_fn({
         'image': image,
     })
