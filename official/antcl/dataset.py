@@ -113,9 +113,10 @@ def dataset(directory, images_file, labels_file):
   labels = np.load(directory+labels_file)
  
   # get data indices of interest for this specific experiment
-  idx_phase = np.nonzero(np.in1d(labels[:,1],[1,2]))[0]
+  idx_phase = np.nonzero(np.in1d(labels[:,1],[1]))[0]
   images = images[idx_phase]
   labels = labels[idx_phase]
+  '''
   idx_trial_type = np.nonzero(np.in1d(labels[:,0],[0,1,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]))[0]
   labels = np.delete(labels, idx_trial_type, axis=0)
   images = np.delete(images, idx_trial_type, axis=0)
@@ -123,6 +124,7 @@ def dataset(directory, images_file, labels_file):
   labels[idx_trial_type,0] = 0
   idx_trial_type = np.nonzero(np.in1d(labels[:,0],[5]))[0]
   labels[idx_trial_type,0] = 1
+  '''
   images = np.expand_dims(images,axis=2)
   print(images)
   print(images.shape)
