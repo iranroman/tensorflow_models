@@ -113,7 +113,7 @@ def dataset(directory, images_file, labels_file):
   labels = np.load(directory+labels_file)
  
   # get data indices of interest for this specific experiment
-  idx_phase = np.nonzero(np.in1d(labels[:,1],[1]))[0]
+  idx_phase = np.nonzero(np.in1d(labels[:,1],[0]))[0]
   images = images[idx_phase]
   labels = labels[idx_phase]
   '''

@@ -22,14 +22,14 @@ from absl import flags
 from six.moves import range
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-from official.antcl import dataset
+from official.cl_ph import dataset
 from official.utils.flags import core as flags_core
 from official.utils.logs import hooks_helper
 from official.utils.misc import distribution_utils
 from official.utils.misc import model_helpers
 
 
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-3
 
 
 def create_model(data_format):
@@ -82,7 +82,7 @@ def create_model(data_format):
           l.Dense(1024, 
               activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
           l.Dropout(0.4),
-          l.Dense(21, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+          l.Dense(2, kernel_regularizer=tf.keras.regularizers.l2(0.01)),
       ])
 
 
@@ -98,7 +98,7 @@ def define_mnist_flags():
   flags_core.define_image()
   flags.adopt_module_key_flags(flags_core)
   flags_core.set_defaults(data_dir='/home/iran/Research/BeatNN/experiments/',
-                          model_dir='/tmp/mnist_model',
+                          model_dir='mnist_model',
                           batch_size=100,
                           train_epochs=200,
                           epochs_between_evals=10)
@@ -198,7 +198,7 @@ def run_mnist(flags_obj):
     # randomness, while smaller sizes use less memory. MNIST is a small
     # enough dataset that we can easily shuffle the full epoch.
     ds = dataset.train(flags_obj.data_dir)
-    ds = ds.cache().shuffle(buffer_size=8000).batch(flags_obj.batch_size)
+    ds = ds.cache().shuffle(buffer_size=20000).batch(flags_obj.batch_size)
 
     # Iterate through the dataset a set number (`epochs_between_evals`) of times
     # during each training session.
