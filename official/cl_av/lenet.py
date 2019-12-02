@@ -181,8 +181,17 @@ for isubj in range(21):
 		labels_shuffle = [labels[ i] for i in idx]
 		"""
 		return data, labels
-				
-		
+	
+	def next_batch_test(X,Y):
+		Y_d = np.array([np.where(i==1)[0][0] for i in Y]) 
+		idx_vis = np.where(Y_d==0)[0]
+		idx_pul = np.where(Y_d==1)[0]
+		n_vis = idx_vis.shape[0]
+		np.random.shuffle(idx_pul)
+		idx_pul = idx_pul[:n_vis]
+		X = np.concatenate((X[idx_vis],X[idx_pul]),axis=0)		
+		Y = np.concatenate((Y[idx_vis],Y[idx_pul]),axis=0)		
+		return X, Y
 	# Start training
 	with tf.Session() as sess:
 
@@ -204,12 +213,13 @@ for isubj in range(21):
 			  "{:.3f}".format(acc))
 
 		    # Calculate accuracy for 256 MNIST test images
-	            ts_acc = sess.run(accuracy, feed_dict={X: X_ts,
-	                Y: Y_ts,
+	            batch_x_ts, batch_y_ts = next_batch_test(X_ts, Y_ts)
+	            ts_acc = sess.run(accuracy, feed_dict={X: batch_x_ts,
+	                Y: batch_y_ts,
 	                keep_prob: 1.0})
 	            if ts_acc > best_subj_acc:
 	            	best_subj_acc = ts_acc
+	            	np.save('conf_mat_'+str(isubj)+'.npy',sess.run([conf_mat], feed_dict={X:batch_x_ts,Y:batch_y_ts,keep_prob:1.0}))
 	            print("Testing Accuracy:", ts_acc)
 
 	    print('best accuracy for subject ', isubj,' was ', best_subj_acc)
-	    np.save('conf_mat_'+str(isubj)+'.npy',sess.run([conf_mat], feed_dict={X:X_ts,Y:Y_ts,keep_prob:1.0}))
