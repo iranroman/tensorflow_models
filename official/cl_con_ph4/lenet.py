@@ -52,6 +52,12 @@ def data_preprocess(images,labels,isubj):
 	return images, labels
 
 for isubj in range(21):
+	
+	tr_loss_all = []
+	ts_loss_all = []
+	tr_acc_all = []
+	ts_acc_all = []
+ 
 	best_subj_acc = 0
 	X_ts, Y_ts = data_preprocess(X_ts_init,Y_ts_init,isubj)
 	X_tr, Y_tr = data_preprocess(X_tr_init,Y_tr_init,isubj)
@@ -181,18 +187,27 @@ for isubj in range(21):
 	            loss, acc = sess.run([loss_op, accuracy], feed_dict={X: batch_x,
 									 Y: batch_y,
 									 keep_prob: 1.0})
+	            tr_loss_all.append(loss)
+	            tr_acc_all.append(acc)
+
 	            print('Current subject: ' + str(isubj))
 	            print("Step " + str(step) + ", Minibatch Loss= " + \
 			  "{:.4f}".format(loss) + ", Training Accuracy= " + \
 			  "{:.3f}".format(acc))
 
 		    # Calculate accuracy for 256 MNIST test images
-	            ts_acc = sess.run(accuracy, feed_dict={X: X_ts,
+	            ts_loss, ts_acc = sess.run([loss_op, accuracy], feed_dict={X: X_ts,
 	                Y: Y_ts,
 	                keep_prob: 1.0})
+	            ts_acc_all.append(ts_acc)
+	            ts_loss_all.append(ts_loss)
 	            if ts_acc > best_subj_acc:
 	            	best_subj_acc = ts_acc
 	            	np.save('conf_mat_'+str(isubj)+'.npy',sess.run([conf_mat], feed_dict={X:X_ts,Y:Y_ts,keep_prob:1.0}))
 	            print("Testing Accuracy:", ts_acc)
 
 	    print('best accuracy for subject ', isubj,' was ', best_subj_acc)
+	    np.save('tr_loss_'+str(isubj)+'.npy',np.asarray(tr_loss_all))
+	    np.save('tr_acc_'+str(isubj)+'.npy',np.asarray(tr_acc_all))
+	    np.save('ts_loss_'+str(isubj)+'.npy',np.asarray(ts_loss_all))
+	    np.save('ts_acc_'+str(isubj)+'.npy',np.asarray(ts_acc_all))
