@@ -36,13 +36,11 @@ def data_preprocess(images,labels,isubj):
 	idx_cha = np.nonzero(np.in1d(labels[:,1],[3]))[0]
 	images = images[idx_cha]
 	labels = labels[idx_cha]
-	idx_ph1 = np.nonzero(np.in1d(labels[:,2],[0,1,2]))[0]
-	idx_ph2 = np.nonzero(np.in1d(labels[:,2],[3,4,5]))[0]
+	idx_del = np.nonzero(np.in1d(labels[:,2],[0,1,2,9,10,11,12,13,14,15,16,17]))[0]
+	idx_ph1 = np.nonzero(np.in1d(labels[:,2],[3,4,5]))[0]
 	idx_ph3 = np.nonzero(np.in1d(labels[:,2],[6,7,8]))[0]
-	labels[idx_ph1,2] = 0
-	labels[idx_ph2,2] = 1
-	labels[idx_ph3,2] = 2
-	idx_del = np.nonzero(np.in1d(labels[:,2],[9,10,11,12,13,14,15,16,17]))[0]
+	labels[idx_ph3,2] = 0
+	labels[idx_ph1,2] = 1
 	images = np.delete(images,idx_del,axis=0)
 	labels = np.delete(labels,idx_del,axis=0)
 	labels_dense = labels[:,2].astype(np.int)
@@ -64,7 +62,7 @@ for isubj in range(21):
 	display_step = 10
 
 	# Network Parameters
-	num_classes = 3 # MNIST total classes (0-9 digits)
+	num_classes = 2 # MNIST total classes (0-9 digits)
 	dropout = 0.75 # Dropout, probability to keep units
 
 	# tf Graph input

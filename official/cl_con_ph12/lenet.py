@@ -33,7 +33,7 @@ def data_preprocess(images,labels,isubj):
 	idx_i = np.nonzero(np.in1d(labels[:,0],[isubj]))[0]
 	images = images[idx_i]
 	labels = labels[idx_i]
-	idx_cha = np.nonzero(np.in1d(labels[:,1],[3]))[0]
+	idx_cha = np.nonzero(np.in1d(labels[:,1],[1,2]))[0]
 	images = images[idx_cha]
 	labels = labels[idx_cha]
 	idx_ph1 = np.nonzero(np.in1d(labels[:,2],[0,1,2]))[0]
